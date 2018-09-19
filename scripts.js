@@ -42,4 +42,4 @@
 
       return parse(html.replace(/(\r\n|\n|\r)/gm, " ").replace(/ +(?= )/g, ''));
     };
-  }();
+  })();
