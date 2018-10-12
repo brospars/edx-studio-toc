@@ -1,4 +1,3 @@
-/* eslint-disable */
 javascript:(function () {
   var baseUrl = window.location.href.replace('studio.fun-mooc.fr/course','fun-mooc.fr/courses')+'/jump_to_id/';
   var $sections = $('.outline-section');
@@ -36,5 +35,5 @@ javascript:(function () {
   });
   expandables.click();
 
-  var result = window.open('http://localhost:8080/?baseUrl='+encodeURIComponent(baseUrl)+'&plan='+JSON.stringify(sections));
+  window.open('https://brospars.github.io/edx-studio-toc/dist/?baseUrl='+encodeURIComponent(baseUrl)+'&plan='+JSON.stringify(sections));
 })();
