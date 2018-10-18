@@ -35,5 +35,5 @@ javascript:(function () {
   });
   expandables.click();
 
-  window.open('https://brospars.github.io/edx-studio-toc/dist/?baseUrl='+encodeURIComponent(baseUrl)+'&plan='+JSON.stringify(sections));
+  window.open('http://localhost:8080/?baseUrl='+encodeURIComponent(baseUrl)+'&plan='+JSON.stringify(sections));
 })();

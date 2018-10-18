@@ -2,7 +2,7 @@
 
 ## How to use
 
-1. Add this [bookmarklet](public/bookmark.js) to your browser
+1. Add this [bookmarklet](src/bookmark/bookmark.js) to your browser
 2. Go to the course homepage in studio (ex : https://studio.fun-mooc.fr/course/course-v1:xxxxxxxxxx+session01)
 3. Run the bookmarklet by clicking it
 4. You should be redirected onto this page https://brospars.github.io/edx-studio-toc/dist/
