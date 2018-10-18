@@ -10,6 +10,9 @@
   }
 
   #app{
+    .card-data{
+      margin-bottom: .4rem;
+    }
     .container{
       padding: 1rem;
     }

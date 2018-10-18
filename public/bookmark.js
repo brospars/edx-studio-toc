@@ -35,13 +35,15 @@ javascript:(function () {
   });
   expandables.click();
 
+  console.log(baseUrl);
+
   var w = window.open('');
   w.document.write(
     '<!DOCTYPE html><html><body onclick="copy()">' +
     '<h1>Plan :</h1>' +
-    '<p>Please copy this and paste it in the <a href="https://brospars.github.io/edx-studio-toc/dist/">app</a></p>' +
     '<input id="input"/>' +
     '<button id="copy" onclick="copy()">Copy</button>' +
+    '<p>Please copy this and paste it in the <a href="https://brospars.github.io/edx-studio-toc/dist/?baseUrl=' + encodeURIComponent(baseUrl) + '">app</a></p>' +
     '<script>' +
       'var input = document.getElementById("input");' +
       'input.value = JSON.stringify(' + JSON.stringify(sections) + ');' +

@@ -7,6 +7,7 @@ Vue.use(Vuex)
 export default new Vuex.Store({
   state: {
     baseUrl: '',
+    rawData: null,
     plan: [],
     source: '',
     depth: 3,
@@ -15,6 +16,9 @@ export default new Vuex.Store({
   mutations: {
     updateBaseUrl (state, baseUrl) {
       Vue.set(state, 'baseUrl', baseUrl)
+    },
+    updateRawData (state, data) {
+      Vue.set(state, 'rawData', data)
     },
     updatePlan (state, plan) {
       Vue.set(state, 'plan', plan)
