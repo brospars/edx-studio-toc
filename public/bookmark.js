@@ -35,12 +35,10 @@ javascript:(function () {
   });
   expandables.click();
 
-  console.log(baseUrl);
-
   var w = window.open('');
   w.document.write(
     '<!DOCTYPE html><html><body>' +
-    '<h1>Plan :</h1>' +
+    '<h1>Course data :</h1>' +
     '<input id="input"/>' +
     '<button id="copy" onclick="copy()">Copy and go to app</button>' +
     '<p>Click the button, if nothing happen please copy the input content and go to the <a href="https://brospars.github.io/edx-studio-toc/dist/?baseUrl=' + encodeURIComponent(baseUrl) + '">app</a></p>' +
