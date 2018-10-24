@@ -4,7 +4,6 @@
             <div class="card-body">
                 <form>
                     <div class="form-group">
-                      <label class="form-label" for="sourceCode">Source code</label>
                       <textarea id="sourceCode" class="form-input" v-model="source" readonly></textarea>
                     </div>
                 </form>
