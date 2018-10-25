@@ -35,6 +35,9 @@ export default {
       return this.baseUrl + locator
     }
   },
+  mounted () {
+    this.$store.commit('updateSource', this.$refs.render.outerHTML)
+  },
   updated () {
     this.$store.commit('updateSource', this.$refs.render.outerHTML)
   }
