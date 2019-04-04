@@ -14,27 +14,12 @@
         </form>
       </div>
     </div>
-    <div class="columns" v-if="rawData">
-      <div class="column col-12">
-        <options></options>
-      </div>
-      <div class="column col-6">
-        <render></render>
-      </div>
-      <div class="column col-6">
-          <html-source></html-source>
-      </div>
-    </div>
   </div>
 </template>
 
 <script>
-import Render from '../components/Render'
-import HtmlSource from '../components/Source'
-import Options from '../components/Options'
 export default {
   name: 'home',
-  components: { Options, HtmlSource, Render },
   mounted () {
     let urlParams = new URLSearchParams(window.location.search)
     let baseUrl = urlParams.get('baseUrl')
@@ -51,6 +36,7 @@ export default {
 
         try {
           this.$store.commit('updatePlan', JSON.parse(value))
+          this.$router.push({ path: 'toc' })
         } catch (e) {
           console.log('invalid json')
         }

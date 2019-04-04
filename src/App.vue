@@ -1,5 +1,18 @@
 <template>
   <div id="app">
+    <div class="nav container">
+      <ul class="tab">
+        <li class="tab-item" :class="$route.name === 'home' ? 'active':''">
+          <router-link to="/">Data</router-link>
+        </li>
+        <li class="tab-item" :class="$route.name === 'toc' ? 'active':''">
+          <router-link to="/toc">Table of Content</router-link>
+        </li>
+        <li class="tab-item" :class="$route.name === 'discourse' ? 'active':''">
+          <router-link to="/discourse">Discourse</router-link>
+        </li>
+      </ul>
+    </div>
     <router-view/>
   </div>
 </template>
