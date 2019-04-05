@@ -54,7 +54,6 @@
                         <label class="form-radio form-inline">
                           <input type="radio" value="list" v-model="template"><i class="form-icon"></i> List
                         </label>
-                        </label>
                       </div>
                     </div>
                 </form>

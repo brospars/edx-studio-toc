@@ -1,6 +1,6 @@
 <template>
   <div ref="render" class="plan">
-    <div v-for="section in plan" class="section">
+    <div v-for="section in plan" :key="section.id" class="section">
       <h2>{{section.title}}</h2>
       <table style="background: #f5f5f5;" v-if="section.subsections.length > 0 && depth >= 2">
         <tbody>
@@ -8,11 +8,11 @@
           <th style="width:50%"><h2>Sequences</h2></th>
           <th style="width:50%" v-if="depth >= 3"><h2>Units</h2></th>
         </tr>
-        <tr v-for="subsection in section.subsections">
+        <tr v-for="subsection in section.subsections" :key="subsection.id">
           <td><p style="font-size: 1.2em;">{{subsection.title}}</p></td>
           <td v-if="subsection.units.length > 0 && depth >= 3">
             <ul>
-              <li v-for="unit in subsection.units">
+              <li v-for="unit in subsection.units" :key="unit.id">
                 <a :href="buildUrl(unit.locator)">{{unit.title}}</a>
               </li>
             </ul>

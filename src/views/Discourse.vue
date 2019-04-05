@@ -49,13 +49,11 @@ export default {
     },
     postCategory (data, cb) {
       this.$http.get('/someUrl').then(response => {
-
         // get body data
-        this.someData = response.body;
-
+        this.someData = response.body
       }, response => {
         // error callback
-      });
+      })
     }
   }
 }
