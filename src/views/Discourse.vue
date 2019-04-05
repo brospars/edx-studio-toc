@@ -11,7 +11,7 @@
           </button>
         </div>
         <div class="column col-12">
-          {{output}}
+          <div class="log" v-for="(log, index) in logs" :key="index"  :class="'text-' + log.type">{{log.message}}</div>
         </div>
       </div>
     </div>
@@ -28,7 +28,7 @@ export default {
   components: { DiscourseOptions },
   data () {
     return {
-      output: ''
+      logs: []
     }
   },
   computed: {
@@ -43,22 +43,64 @@ export default {
   },
   methods: {
     createCategories () {
-      this.plan.forEach((element) => {
-        console.log(element.title)
+      this.logs = []
+      this.plan.forEach((section) => {
+        let categoryColor = this.randomColor()
+        this.$http.post(this.$store.state.discourseUrl + 'categories.json', this.getFormData({
+          api_username: this.$store.state.discourseUsername,
+          api_key: this.$store.state.discourseToken,
+          name: section.title.substring(0, 50),
+          color: categoryColor,
+          text_color: 'ffffff'
+        })).then(response => {
+          console.log(response.body.category.id)
+          let category = response.body.category
+          this.log('Create category ' + category.id + ': ' + section.title, 'success')
+
+          section.subsections.forEach((subsection) => {
+            this.$http.post(this.$store.state.discourseUrl + 'categories.json', this.getFormData({
+              api_username: this.$store.state.discourseUsername,
+              api_key: this.$store.state.discourseToken,
+              name: subsection.title.substring(0, 50),
+              color: categoryColor,
+              text_color: 'ffffff',
+              parent_category_id: category.id
+            })).then(response => {
+              console.log(response.body.category.id)
+              let subcategory = response.body.category
+              this.log('__ Create subcategory ' + subcategory.id + ': ' + subsection.title, 'success')
+            }, response => {
+              this.log('Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, ''), 'error')
+            })
+          })
+        }, response => {
+          this.log('Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, ''), 'error')
+        })
       })
     },
-    postCategory (data, cb) {
-      this.$http.get('/someUrl').then(response => {
-        // get body data
-        this.someData = response.body
-      }, response => {
-        // error callback
-      })
+    log (message, type) {
+      this.logs.push({ message, type })
+    },
+    randomColor () {
+      let letters = '0123456789ABCDEF'
+      let color = ''
+      for (var i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)]
+      }
+      return color
+    },
+    getFormData (object) {
+      const formData = new FormData()
+      Object.keys(object).forEach(key => formData.append(key, object[key]))
+      return formData
     }
   }
 }
 </script>
 
 <style scoped>
-
+  .log{
+    font-size: 0.8em;
+    font-family: Courier, monospace;
+  }
 </style>
