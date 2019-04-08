@@ -1,6 +1,6 @@
 <template>
   <div class="discourse container">
-    <div v-if="rawData">
+    <div v-if="plan && plan.length">
       <div class="columns">
         <div class="column col-12">
           <discourse-options></discourse-options>
