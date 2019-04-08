@@ -12,22 +12,6 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <div class="col-3 col-sm-12">
-                            <label class="form-label" for="cssText">CSS</label>
-                        </div>
-                        <div class="col-9 col-sm-12">
-                            <textarea id="cssText" class="form-input" placeholder=".class{ // style }"></textarea>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <div class="col-3 col-sm-12">
-                            <label class="form-label" for="cssFile">CSS File</label>
-                        </div>
-                        <div class="col-9 col-sm-12">
-                            <input class="form-input" id="cssFile" type="file">
-                        </div>
-                    </div>
-                    <div class="form-group">
                       <div class="col-3 col-sm-12">
                         <label class="form-label">Depth</label>
                       </div>
