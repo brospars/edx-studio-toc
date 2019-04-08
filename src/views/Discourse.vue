@@ -6,6 +6,29 @@
           <discourse-options></discourse-options>
         </div>
         <div class="column col-12">
+          <div class="card" v-if="existingCategories.length">
+            <div class="card-body">
+              <table class="table table-striped">
+                <tr>
+                  <th>id</th>
+                  <th>name</th>
+                  <th>parent_id</th>
+                  <th>actions</th>
+                </tr>
+                <tr v-for="(category, index) in existingCategories" :key="index">
+                  <td>{{category.id}}</td>
+                  <td>{{category.name}}</td>
+                  <td>{{category.parent_category_id}}</td>
+                  <td><button class="btn btn-sm" v-on:click="deleteCategory(category.id)">Delete</button></td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="column col-12">
+          <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="fetchCategories()">
+            Fetch existing categories
+          </button>&nbsp;
           <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="createCategories()">
             Create {{plan.length}} categories and {{subcategoryCount}} subcategories
           </button>
@@ -28,7 +51,8 @@ export default {
   components: { DiscourseOptions },
   data () {
     return {
-      logs: []
+      logs: [],
+      existingCategories: []
     }
   },
   computed: {
@@ -42,6 +66,22 @@ export default {
     }
   },
   methods: {
+    fetchCategories () {
+      this.$http.get(this.$store.state.discourseUrl + 'site.json?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+        if (response.body.categories) {
+          this.existingCategories = response.body.categories
+        }
+      }, response => {
+        alert('Error while fetching categories, please check discourse options')
+      })
+    },
+    deleteCategory (categoryId) {
+      this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId + '?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+        this.fetchCategories()
+      }, response => {
+        alert('Error deleting category (category is not empty or doesn\'t exist)')
+      })
+    },
     createCategories () {
       this.logs = []
       this.plan.forEach((section) => {
