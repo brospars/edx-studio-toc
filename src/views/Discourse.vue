@@ -5,21 +5,26 @@
         <div class="column col-12">
           <discourse-options></discourse-options>
         </div>
-        <div class="column col-12">
-          <div class="card" v-if="existingCategories.length">
+        <div class="column col-12" v-if="existingCategories.length">
+          <div class="card">
             <div class="card-body">
-              <table class="table table-striped">
+              <table class="table">
                 <tr>
                   <th>id</th>
                   <th>name</th>
-                  <th>parent_id</th>
+                  <th>color</th>
+                  <th>parent</th>
                   <th>actions</th>
                 </tr>
-                <tr v-for="(category, index) in existingCategories" :key="index">
+                <tr v-for="(category, index) in existingCategories" :key="index" :class="category.parent_category_id ? 'subcategory':''">
                   <td>{{category.id}}</td>
-                  <td>{{category.name}}</td>
+                  <td><input type="text" v-model="category.name"/></td>
+                  <td>#<input type="text" v-model="category.color"/></td>
                   <td>{{category.parent_category_id}}</td>
-                  <td><button class="btn btn-sm" v-on:click="deleteCategory(category.id)">Delete</button></td>
+                  <td>
+                    <button class="btn btn-sm btn-success" v-on:click="updateCategory(category)">Update</button>
+                    <button class="btn btn-sm btn-error" v-on:click="deleteCategory(category.id)">Delete</button>
+                  </td>
                 </tr>
               </table>
             </div>
@@ -28,7 +33,7 @@
         <div class="column col-12">
           <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="fetchCategories()">
             Fetch existing categories
-          </button>&nbsp;
+          </button>
           <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="createCategories()">
             Create {{plan.length}} categories and {{subcategoryCount}} subcategories
           </button>
@@ -52,6 +57,7 @@ export default {
   data () {
     return {
       logs: [],
+      parentCategories: [],
       existingCategories: []
     }
   },
@@ -67,12 +73,41 @@ export default {
   },
   methods: {
     fetchCategories () {
-      this.$http.get(this.$store.state.discourseUrl + 'site.json?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
-        if (response.body.categories) {
-          this.existingCategories = response.body.categories
+      this.$http.get(this.$store.state.discourseUrl + 'categories.json?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+        if (response.body.category_list && response.body.category_list.categories) {
+          this.parentCategories = response.body.category_list.categories
+
+          this.$http.get(this.$store.state.discourseUrl + 'site.json?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+            if (response.body.categories) {
+              this.existingCategories = this.parentCategories.reduce((categories, parentCategory) => {
+                categories.push(parentCategory)
+                if (parentCategory.subcategory_ids) {
+                  parentCategory.subcategory_ids.forEach((subcategoryId) => {
+                    categories.push(response.body.categories.find(category => category.id === subcategoryId))
+                  })
+                }
+                return categories
+              }, [])
+            }
+          }, response => {
+            alert('Error while fetching categories, please check discourse options')
+          })
         }
       }, response => {
         alert('Error while fetching categories, please check discourse options')
+      })
+    },
+    updateCategory (category) {
+      this.$http.put(this.$store.state.discourseUrl + 'categories/' + category.id, this.getFormData({
+        api_username: this.$store.state.discourseUsername,
+        api_key: this.$store.state.discourseToken,
+        name: category.name,
+        color: category.color,
+        text_color: category.text_color
+      })).then(response => {
+        this.fetchCategories()
+      }, response => {
+        alert('Error updating category')
       })
     },
     deleteCategory (categoryId) {
@@ -147,5 +182,19 @@ export default {
   .log{
     font-size: 0.8em;
     font-family: Courier, monospace;
+  }
+
+  .btn{
+    margin-left: 5px;
+  }
+
+  .subcategory{
+    padding-left: 5px;
+    border-left: .05rem solid #5755d9;
+    background:#f5f5f5;
+  }
+
+  .subcategory td:first-child{
+    margin-left: 2em;
   }
 </style>
