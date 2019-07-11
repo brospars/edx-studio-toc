@@ -5,8 +5,8 @@
       <table style="background: #f5f5f5;" v-if="section.subsections.length > 0 && depth >= 2">
         <tbody>
         <tr>
-          <th style="width:50%"><h2>Sequences</h2></th>
-          <th style="width:50%" v-if="depth >= 3"><h2>Units</h2></th>
+          <th style="width:50%"><b>Sequences</b></th>
+          <th style="width:50%" v-if="depth >= 3"><b>Units</b></th>
         </tr>
         <tr v-for="subsection in section.subsections" :key="subsection.id">
           <td><p style="font-size: 1.2em;">{{subsection.title}}</p></td>
