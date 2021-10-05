@@ -142,27 +142,31 @@ export default {
         setTimeout(function () {
           let categoryColor = self.randomColor()
           self.$http.post(self.$store.state.discourseUrl + 'categories.json', self.getFormData({
-            api_username: self.$store.state.discourseUsername,
-            api_key: self.$store.state.discourseToken,
             name: section.title.substring(0, 50),
             color: categoryColor,
             text_color: 'ffffff'
-          })).then(response => {
-            console.log(response.body.category.id)
+          }), {
+            headers: {
+              'Api-Key': self.$store.state.discourseToken,
+              'Api-Username': self.$store.state.discourseUsername
+            }
+          }).then(response => {
             let category = response.body.category
             self.log('Create category ' + category.id + ': ' + section.title, 'success')
 
             section.subsections.forEach((subsection, i) => {
               setTimeout(function () {
                 self.$http.post(self.$store.state.discourseUrl + 'categories.json', self.getFormData({
-                  api_username: self.$store.state.discourseUsername,
-                  api_key: self.$store.state.discourseToken,
                   name: subsection.title.substring(0, 50),
                   color: categoryColor,
                   text_color: 'ffffff',
                   parent_category_id: category.id
-                })).then(response => {
-                  console.log(response.body.category.id)
+                }), {
+                  headers: {
+                    'Api-Key': self.$store.state.discourseToken,
+                    'Api-Username': self.$store.state.discourseUsername
+                  }
+                }).then(response => {
                   let subcategory = response.body.category
                   self.log('__ Create subcategory ' + subcategory.id + ': ' + subsection.title, 'success')
                 }, response => {
