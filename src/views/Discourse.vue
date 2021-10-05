@@ -73,11 +73,21 @@ export default {
   },
   methods: {
     fetchCategories () {
-      this.$http.get(this.$store.state.discourseUrl + 'categories.json?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+      this.$http.get(this.$store.state.discourseUrl + 'categories.json', {
+        headers: {
+          'Api-Key': this.$store.state.discourseToken,
+          'Api-Username': this.$store.state.discourseUsername
+        }
+      }).then(response => {
         if (response.body.category_list && response.body.category_list.categories) {
           this.parentCategories = response.body.category_list.categories
 
-          this.$http.get(this.$store.state.discourseUrl + 'site.json?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+          this.$http.get(this.$store.state.discourseUrl + 'site.json', {
+            headers: {
+              'Api-Key': this.$store.state.discourseToken,
+              'Api-Username': this.$store.state.discourseUsername
+            }
+          }).then(response => {
             if (response.body.categories) {
               this.existingCategories = this.parentCategories.reduce((categories, parentCategory) => {
                 categories.push(parentCategory)
@@ -99,19 +109,27 @@ export default {
     },
     updateCategory (category) {
       this.$http.put(this.$store.state.discourseUrl + 'categories/' + category.id, this.getFormData({
-        api_username: this.$store.state.discourseUsername,
-        api_key: this.$store.state.discourseToken,
         name: category.name,
         color: category.color,
         text_color: category.text_color
-      })).then(response => {
+      }), {
+        headers: {
+          'Api-Key': this.$store.state.discourseToken,
+          'Api-Username': this.$store.state.discourseUsername
+        }
+      }).then(response => {
         this.fetchCategories()
       }, response => {
         alert('Error updating category')
       })
     },
     deleteCategory (categoryId) {
-      this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId + '?api_username=' + this.$store.state.discourseUsername + '&api_key=' + this.$store.state.discourseToken).then(response => {
+      this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId, null, {
+        headers: {
+          'Api-Key': this.$store.state.discourseToken,
+          'Api-Username': this.$store.state.discourseUsername
+        }
+      }).then(response => {
         this.fetchCategories()
       }, response => {
         alert('Error deleting category (category is not empty or doesn\'t exist)')
