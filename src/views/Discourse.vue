@@ -5,6 +5,24 @@
         <div class="column col-12">
           <discourse-options></discourse-options>
         </div>
+        <div class="column col-12">
+          <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="fetchCategories()">
+            Fetch existing categories
+          </button>
+          <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="createCategories()">
+            Create {{categoryCount}} categories and {{subcategoryCount}} subcategories
+          </button>
+          <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="createCategories(true)">
+            Create {{categoryCount}} categories and {{subcategoryCount}} subcategories (dry run)
+          </button>
+        </div>
+        <div class="column col-12" v-if="logs && logs.length">
+          <div class="card">
+            <div class="card-body logs">
+              <div class="log" v-for="(log, index) in logs" :key="index"  :class="'text-' + log.type">{{log.message}}</div>
+            </div>
+          </div>
+        </div>
         <div class="column col-12" v-if="existingCategories.length">
           <div class="card">
             <div class="card-body">
@@ -30,17 +48,6 @@
             </div>
           </div>
         </div>
-        <div class="column col-12">
-          <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="fetchCategories()">
-            Fetch existing categories
-          </button>
-          <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="createCategories()">
-            Create {{plan.length}} categories and {{subcategoryCount}} subcategories
-          </button>
-        </div>
-        <div class="column col-12">
-          <div class="log" v-for="(log, index) in logs" :key="index"  :class="'text-' + log.type">{{log.message}}</div>
-        </div>
       </div>
     </div>
     <div v-else>
@@ -56,6 +63,7 @@ export default {
   components: { DiscourseOptions },
   data () {
     return {
+      dryRun: false,
       logs: [],
       parentCategories: [],
       existingCategories: []
@@ -63,11 +71,25 @@ export default {
   },
   computed: {
     plan () {
+      try {
+        this.$store.commit('updatePlan', JSON.parse(this.$store.state.rawData))
+      } catch (e) {
+        console.log('invalid json')
+      }
       return this.$store.state.plan
     },
-    subcategoryCount () {
-      return this.$store.state.plan.reduce((cpt, element) => {
+    categoryCount () {
+      return !this.$store.state.createUnit ? this.$store.state.plan.length : this.$store.state.plan.reduce((cpt, element) => {
         return cpt + element.subsections.length
+      }, 0)
+    },
+    subcategoryCount () {
+      return !this.$store.state.createUnit ? this.$store.state.plan.reduce((cpt, element) => {
+        return cpt + element.subsections.length
+      }, 0) : this.$store.state.plan.reduce((cpt, element) => {
+        return cpt + element.subsections.reduce((cptSequence, sequence) => {
+          return cptSequence + sequence.units.length
+        }, 0)
       }, 0)
     }
   },
@@ -135,50 +157,91 @@ export default {
         alert('Error deleting category (category is not empty or doesn\'t exist)')
       })
     },
-    createCategories () {
-      let self = this
+    async createCategories (dryrun) {
+      await this.fetchCategories()
+      this.dryRun = !!dryrun
+      let delay = 0
       this.logs = []
       this.plan.forEach((section, i) => {
-        setTimeout(function () {
-          let categoryColor = self.randomColor()
-          self.$http.post(self.$store.state.discourseUrl + 'categories.json', self.getFormData({
-            name: section.title.substring(0, 50),
-            color: categoryColor,
-            text_color: 'ffffff'
-          }), {
-            headers: {
-              'Api-Key': self.$store.state.discourseToken,
-              'Api-Username': self.$store.state.discourseUsername
-            }
-          }).then(response => {
-            let category = response.body.category
-            self.log('Create category ' + category.id + ': ' + section.title, 'success')
-
-            section.subsections.forEach((subsection, i) => {
-              setTimeout(function () {
-                self.$http.post(self.$store.state.discourseUrl + 'categories.json', self.getFormData({
-                  name: subsection.title.substring(0, 50),
-                  color: categoryColor,
-                  text_color: 'ffffff',
-                  parent_category_id: category.id
-                }), {
-                  headers: {
-                    'Api-Key': self.$store.state.discourseToken,
-                    'Api-Username': self.$store.state.discourseUsername
-                  }
-                }).then(response => {
-                  let subcategory = response.body.category
-                  self.log('__ Create subcategory ' + subcategory.id + ': ' + subsection.title, 'success')
-                }, response => {
-                  self.log('Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, ''), 'error')
-                })
-              }, 500 * i)
+        if (this.$store.state.createUnit) {
+          delay++
+          const sectionTitle = section.title.split(':')[0].split('.')[0].replace('Module ', 'M')
+          section.subsections.forEach((subsection, j) => {
+            delay++
+            const title = `${sectionTitle} : ${subsection.title}`.substring(0, 50)
+            this.createCategory(title, 500 * delay).then((category) => {
+              this.createSubCategories(subsection.units, category)
             })
-          }, response => {
-            self.log('Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, ''), 'error')
           })
+        } else {
+          const title = section.title.substring(0, 50)
+          this.createCategory(title, 500 * i).then((category) => {
+            this.createSubCategories(section.subsections, category)
+          })
+        }
+      })
+    },
+    createCategory (title, delay) {
+      return new Promise((resolve, reject) => {
+        setTimeout(() => {
+          const categoryColor = this.randomColor()
+          const category = this.existingCategories.find((category) => category.name === title)
+
+          if (category) {
+            this.log('Create category : ' + title, 'warning')
+            this.log('Category already exists', 'warning')
+            resolve({ id: category.id, color: category.color })
+          } else {
+            this.postCategoryRequest({
+              name: title,
+              color: categoryColor,
+              text_color: 'ffffff'
+            }).then(response => {
+              let category = response.body.category
+              this.log('Create category ' + category.id + ': ' + title, 'success')
+              resolve({ id: category.id, color: categoryColor })
+            }, response => {
+              const msg = 'Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, '')
+              this.log('Create category : ' + title, 'error')
+              this.log(msg, 'error')
+              reject(new Error(msg))
+            })
+          }
+        }, delay)
+      })
+    },
+    createSubCategories (subcategories, category) {
+      subcategories.forEach((subsection, i) => {
+        setTimeout(() => {
+          const title = subsection.title.substring(0, 50)
+          const subcategory = this.existingCategories.find((category) => category.name === title)
+
+          if (subcategory) {
+            this.log('Create category : ' + title, 'warning')
+            this.log('Category already exists', 'warning')
+          } else {
+            this.postCategoryRequest({
+              name: title,
+              color: category.color,
+              text_color: 'ffffff',
+              parent_category_id: category.id
+            }).then(response => {
+              let subcategory = response.body.category
+              this.log('__ Create subcategory ' + subcategory.id + ': ' + subsection.title, 'success')
+            }, response => {
+              this.log('Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, ''), 'error')
+            })
+          }
         }, 500 * i)
       })
+    },
+    postCategoryRequest (data) {
+      return !this.dryRun ? this.$http.post(this.$store.state.discourseUrl + 'categories.json', this.getFormData(data), {
+        headers: {
+          'Api-Key': this.$store.state.discourseToken,
+          'Api-Username': this.$store.state.discourseUsername
+        }
+      }) : Promise.resolve({ body: { category: { id: 0, color: '#fff' } } })
     },
     log (message, type) {
       this.logs.push({ message, type })
@@ -201,6 +264,11 @@ export default {
 </script>
 
 <style scoped>
+  .logs{
+    max-height: 150px;
+    overflow: auto;
+  }
+
   .log{
     font-size: 0.8em;
     font-family: Courier, monospace;

@@ -27,6 +27,14 @@
               <input class="form-input" id="discourseToken" type="text" placeholder="5aef54e5a4f4e5a444e5feaf54a54e5f43e1af1" v-model="discourseToken">
             </div>
           </div>
+          <div class="form-group">
+            <div class="col-3 col-sm-12">
+              <label class="form-label" for="createUnit">Use units as subcategories</label>
+            </div>
+            <div class="col-9 col-sm-12">
+              <input id="createUnit" type="checkbox" v-model="createUnit">
+            </div>
+          </div>
         </form>
       </div>
     </div>
@@ -59,6 +67,14 @@ export default {
       },
       set (value) {
         this.$store.commit('updateDiscourseToken', value)
+      }
+    },
+    createUnit: {
+      get () {
+        return this.$store.state.createUnit
+      },
+      set (value) {
+        this.$store.commit('updateCreateUnit', value)
       }
     }
   }

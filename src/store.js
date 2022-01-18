@@ -14,7 +14,8 @@ export default new Vuex.Store({
     template: 'table',
     discourseToken: '',
     discourseUrl: '',
-    discourseUsername: ''
+    discourseUsername: '',
+    createUnit: false
   },
   mutations: {
     updateBaseUrl (state, baseUrl) {
@@ -43,6 +44,9 @@ export default new Vuex.Store({
     },
     updateDiscourseToken (state, discourseToken) {
       Vue.set(state, 'discourseToken', discourseToken)
+    },
+    updateCreateUnit (state, createUnit) {
+      Vue.set(state, 'createUnit', createUnit)
     }
   },
   actions: {
