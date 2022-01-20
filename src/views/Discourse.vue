@@ -18,7 +18,7 @@
         </div>
         <div class="column col-12" v-if="logs && logs.length">
           <div class="card">
-            <div class="card-body logs">
+            <div class="card-body logs" ref="logContainer">
               <div class="log" v-for="(log, index) in logs" :key="index"  :class="'text-' + log.type">{{log.message}}</div>
             </div>
           </div>
@@ -31,14 +31,14 @@
                   <th>id</th>
                   <th>name</th>
                   <th>color</th>
-                  <th>parent</th>
+                  <th></th>
                   <th>actions</th>
                 </tr>
                 <tr v-for="(category, index) in existingCategories" :key="index" :class="category.parent_category_id ? 'subcategory':''">
                   <td>{{category.id}}</td>
                   <td><input type="text" v-model="category.name"/></td>
                   <td>#<input type="text" v-model="category.color"/></td>
-                  <td>{{category.parent_category_id}}</td>
+                  <td>{{category.read_restricted ? '🔒':''}}</td>
                   <td>
                     <button class="btn btn-sm btn-success" v-on:click="updateCategory(category)">Update</button>
                     <button class="btn btn-sm btn-error" v-on:click="deleteCategory(category.id)">Delete</button>
@@ -79,9 +79,7 @@ export default {
       return this.$store.state.plan
     },
     categoryCount () {
-      return !this.$store.state.createUnit ? this.$store.state.plan.length : this.$store.state.plan.reduce((cpt, element) => {
-        return cpt + element.subsections.length
-      }, 0)
+      return this.$store.state.plan.length
     },
     subcategoryCount () {
       return !this.$store.state.createUnit ? this.$store.state.plan.reduce((cpt, element) => {
@@ -103,7 +101,6 @@ export default {
       }).then(response => {
         if (response.body.category_list && response.body.category_list.categories) {
           this.parentCategories = response.body.category_list.categories
-
           this.$http.get(this.$store.state.discourseUrl + 'site.json', {
             headers: {
               'Api-Key': this.$store.state.discourseToken,
@@ -146,7 +143,7 @@ export default {
       })
     },
     deleteCategory (categoryId) {
-      this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId, null, {
+      this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId, {
         headers: {
           'Api-Key': this.$store.state.discourseToken,
           'Api-Username': this.$store.state.discourseUsername
@@ -160,79 +157,63 @@ export default {
     async createCategories (dryrun) {
       await this.fetchCategories()
       this.dryRun = !!dryrun
-      let delay = 0
       this.logs = []
-      this.plan.forEach((section, i) => {
+      for (const section of this.plan) {
         if (this.$store.state.createUnit) {
-          delay++
-          const sectionTitle = section.title.split(':')[0].split('.')[0].replace('Module ', 'M')
-          section.subsections.forEach((subsection, j) => {
-            delay++
-            const title = `${sectionTitle} : ${subsection.title}`.substring(0, 50)
-            this.createCategory(title, 500 * delay).then((category) => {
-              this.createSubCategories(subsection.units, category)
-            })
-          })
+          const sectionTitle = section.title.replace('Module ', 'M')
+          const category = await this.createCategory(sectionTitle)
+          for (const subsection of section.subsections) {
+            for (const subsubsection of subsection.units) {
+              const prefix = section.title.indexOf('Module') !== -1 ? sectionTitle.split(':')[0].split('.')[0] + '. ' : ''
+              const subtitle = subsubsection.title.replace('Lecture: ', '').replace('Video: ', '')
+              const title = `${prefix}${subtitle}`.substring(0, 50)
+              if (!new RegExp(['Forum', 'overview'].join('|')).test(title)) {
+                await this.createCategory(title, category)
+              }
+            }
+          }
         } else {
           const title = section.title.substring(0, 50)
-          this.createCategory(title, 500 * i).then((category) => {
-            this.createSubCategories(section.subsections, category)
-          })
+          const category = await this.createCategory(title)
+          for (const subsection of section.subsections) {
+            const title = `${subsection.title}`.substring(0, 50)
+            await this.createCategory(title, category)
+          }
         }
-      })
+      }
     },
-    createCategory (title, delay) {
+    createCategory (title, parentCategory) {
       return new Promise((resolve, reject) => {
         setTimeout(() => {
           const categoryColor = this.randomColor()
           const category = this.existingCategories.find((category) => category.name === title)
+          const data = {
+            name: title,
+            color: categoryColor,
+            text_color: 'ffffff'
+          }
+          let createMsg = title
 
-          if (category) {
-            this.log('Create category : ' + title, 'warning')
-            this.log('Category already exists', 'warning')
+          if (parentCategory) {
+            data.color = parentCategory.color
+            data.parent_category_id = parentCategory.id
+            createMsg = '├── ' + title
+          }
+
+          if (!this.dryRun && category) {
+            this.log(createMsg + ' (Category already exists)', 'warning')
             resolve({ id: category.id, color: category.color })
           } else {
-            this.postCategoryRequest({
-              name: title,
-              color: categoryColor,
-              text_color: 'ffffff'
-            }).then(response => {
+            this.postCategoryRequest(data).then(response => {
               let category = response.body.category
-              this.log('Create category ' + category.id + ': ' + title, 'success')
+              this.log(createMsg + ` (id: ${category.id} ${category.parentId ? 'parentId: ' + category.parentId : ''})`, 'success')
               resolve({ id: category.id, color: categoryColor })
             }, response => {
-              const msg = 'Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, '')
-              this.log('Create category : ' + title, 'error')
-              this.log(msg, 'error')
-              reject(new Error(msg))
+              this.log(createMsg, 'error')
+              reject(new Error(response.body))
             })
           }
-        }, delay)
-      })
-    },
-    createSubCategories (subcategories, category) {
-      subcategories.forEach((subsection, i) => {
-        setTimeout(() => {
-          const title = subsection.title.substring(0, 50)
-          const subcategory = this.existingCategories.find((category) => category.name === title)
-
-          if (subcategory) {
-            this.log('Create category : ' + title, 'warning')
-            this.log('Category already exists', 'warning')
-          } else {
-            this.postCategoryRequest({
-              name: title,
-              color: category.color,
-              text_color: 'ffffff',
-              parent_category_id: category.id
-            }).then(response => {
-              let subcategory = response.body.category
-              this.log('__ Create subcategory ' + subcategory.id + ': ' + subsection.title, 'success')
-            }, response => {
-              this.log('Error : ' + response.body.errors.reduce((acc, elem) => acc + elem, ''), 'error')
-            })
-          }
-        }, 500 * i)
+        }, 500)
       })
     },
     postCategoryRequest (data) {
@@ -241,10 +222,23 @@ export default {
           'Api-Key': this.$store.state.discourseToken,
           'Api-Username': this.$store.state.discourseUsername
         }
-      }) : Promise.resolve({ body: { category: { id: 0, color: '#fff' } } })
+      }) : Promise.resolve({
+        body: {
+          category: {
+            id: Date.now().toString().substr(-4),
+            color: '#fff',
+            ...(!!data.parent_category_id) && { parentId: data.parent_category_id }
+          }
+        }
+      })
     },
     log (message, type) {
       this.logs.push({ message, type })
+      this.$nextTick(function () {
+        if (this.$refs.logContainer) {
+          this.$refs.logContainer.scrollTo(0, this.$refs.logContainer.scrollHeight + 20)
+        }
+      })
     },
     randomColor () {
       let letters = '0123456789ABCDEF'
@@ -265,8 +259,9 @@ export default {
 
 <style scoped>
   .logs{
-    max-height: 150px;
+    height: 150px;
     overflow: auto;
+    resize: vertical;
   }
 
   .log{
