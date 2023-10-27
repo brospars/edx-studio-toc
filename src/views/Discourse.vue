@@ -93,37 +93,42 @@ export default {
   },
   methods: {
     fetchCategories () {
-      this.$http.get(this.$store.state.discourseUrl + 'categories.json', {
-        headers: {
-          'Api-Key': this.$store.state.discourseToken,
-          'Api-Username': this.$store.state.discourseUsername
-        }
-      }).then(response => {
-        if (response.body.category_list && response.body.category_list.categories) {
-          this.parentCategories = response.body.category_list.categories
-          this.$http.get(this.$store.state.discourseUrl + 'site.json', {
-            headers: {
-              'Api-Key': this.$store.state.discourseToken,
-              'Api-Username': this.$store.state.discourseUsername
-            }
-          }).then(response => {
-            if (response.body.categories) {
-              this.existingCategories = this.parentCategories.reduce((categories, parentCategory) => {
-                categories.push(parentCategory)
-                if (parentCategory.subcategory_ids) {
-                  parentCategory.subcategory_ids.forEach((subcategoryId) => {
-                    categories.push(response.body.categories.find(category => category.id === subcategoryId))
-                  })
-                }
-                return categories
-              }, [])
-            }
-          }, response => {
-            alert('Error while fetching categories, please check discourse options')
-          })
-        }
-      }, response => {
-        alert('Error while fetching categories, please check discourse options')
+      return new Promise((resolve, reject) => {
+        this.$http.get(this.$store.state.discourseUrl + 'categories.json', {
+          headers: {
+            'Api-Key': this.$store.state.discourseToken,
+            'Api-Username': this.$store.state.discourseUsername
+          }
+        }).then(response => {
+          if (response.body.category_list && response.body.category_list.categories) {
+            this.parentCategories = response.body.category_list.categories
+            this.$http.get(this.$store.state.discourseUrl + 'site.json', {
+              headers: {
+                'Api-Key': this.$store.state.discourseToken,
+                'Api-Username': this.$store.state.discourseUsername
+              }
+            }).then(response => {
+              if (response.body.categories) {
+                this.existingCategories = this.parentCategories.reduce((categories, parentCategory) => {
+                  categories.push(parentCategory)
+                  if (parentCategory.subcategory_ids) {
+                    parentCategory.subcategory_ids.forEach((subcategoryId) => {
+                      categories.push(response.body.categories.find(category => category.id === subcategoryId))
+                    })
+                  }
+                  return categories
+                }, [])
+              }
+              resolve()
+            }, response => {
+              alert('Error while fetching categories, please check discourse options')
+              reject(response)
+            })
+          }
+        }, response => {
+          alert('Error while fetching categories, please check discourse options')
+          reject(response)
+        })
       })
     },
     updateCategory (category) {
@@ -184,26 +189,28 @@ export default {
     },
     createCategory (title, parentCategory) {
       return new Promise((resolve, reject) => {
-        setTimeout(() => {
-          const categoryColor = this.randomColor()
-          const category = this.existingCategories.find((category) => category.name === title)
-          const data = {
-            name: title,
-            color: categoryColor,
-            text_color: 'ffffff'
-          }
-          let createMsg = title
+        const categoryColor = this.randomColor()
+        const category = this.existingCategories.find((category) => {
+          return category.name === title
+        })
+        const data = {
+          name: title,
+          color: categoryColor,
+          text_color: 'ffffff'
+        }
+        let createMsg = title
 
-          if (parentCategory) {
-            data.color = parentCategory.color
-            data.parent_category_id = parentCategory.id
-            createMsg = '├── ' + title
-          }
+        if (parentCategory) {
+          data.color = parentCategory.color
+          data.parent_category_id = parentCategory.id
+          createMsg = '├── ' + title
+        }
 
-          if (!this.dryRun && category) {
-            this.log(createMsg + ' (Category already exists)', 'warning')
-            resolve({ id: category.id, color: category.color })
-          } else {
+        if (category) {
+          this.log(createMsg + ' (Category already exists)', 'warning')
+          resolve({ id: category.id, color: category.color })
+        } else {
+          setTimeout(() => {
             this.postCategoryRequest(data).then(response => {
               let category = response.body.category
               this.log(createMsg + ` (id: ${category.id} ${category.parentId ? 'parentId: ' + category.parentId : ''})`, 'success')
@@ -212,8 +219,8 @@ export default {
               this.log(createMsg, 'error')
               reject(new Error(response.body))
             })
-          }
-        }, 500)
+          }, this.dryRun ? 10 : 500)
+        }
       })
     },
     postCategoryRequest (data) {
