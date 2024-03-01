@@ -15,6 +15,9 @@
           <button class="btn btn-primary" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="createCategories(true)">
             Create {{categoryCount}} categories and {{subcategoryCount}} subcategories (dry run)
           </button>
+          <button class="btn btn-primary btn-error" :disabled="!$store.state.discourseUrl || !$store.state.discourseUsername || !$store.state.discourseToken" v-on:click="hideAllAboutCategories()">
+            Unlist all 'about category' topics
+          </button>
         </div>
         <div class="column col-12" v-if="logs && logs.length">
           <div class="card">
@@ -191,8 +194,37 @@ export default {
         alert('Error deleting category (category is not empty or too many request, check console)')
       }
     },
+    async hideAllAboutCategories () {
+      this.logs = []
+      await this.fetchCategories()
+
+      const topicsToHide = this.existingCategories.map(c => c['topic_url'])
+
+      for (let index = 0; index < topicsToHide.length; index++) {
+        try {
+          await this.updateSingleTopicStatus(topicsToHide[index], { status: 'visible', enabled: false })
+          this.log(`Topic ${topicsToHide[index]} hidden`, 'success')
+        } catch (e) {
+          this.log(`Topic ${topicsToHide[index]} not hidden`, 'error')
+        }
+        await this.sleep(500)
+      }
+    },
+    async updateSingleTopicStatus (urlOrID, values) {
+      const id = urlOrID.split('/').pop()
+      try {
+        await this.$http.put(this.$store.state.discourseUrl + 't/' + id + '/status.json', this.getFormData(values), {
+          headers: {
+            'Api-Key': this.$store.state.discourseToken,
+            'Api-Username': this.$store.state.discourseUsername
+          }
+        })
+      } catch (e) {
+        alert('Error updating topic (check console)')
+      }
+    },
     async createCategories (dryrun) {
-      await this.fetchCategories();
+      await this.fetchCategories()
       this.dryRun = !!dryrun
       this.logs = []
       for (const section of this.plan) {
@@ -224,7 +256,7 @@ export default {
           }
         }
       }
-      await this.fetchCategories();
+      await this.fetchCategories()
     },
     createCategory (title, parentCategory) {
       return new Promise((resolve, reject) => {
