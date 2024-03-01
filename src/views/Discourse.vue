@@ -201,11 +201,17 @@ export default {
           const category = await this.createCategory(sectionTitle)
           for (const subsection of section.subsections) {
             for (const subsubsection of subsection.units) {
-              const prefix = section.title.indexOf('Module') !== -1 ? sectionTitle.split(':')[0].split('.')[0] + '. ' : ''
-              const subtitle = subsubsection.title.replace('Lecture: ', '').replace('Video: ', '')
-              const title = `${prefix}${subtitle}`.substring(0, 50)
+              const prefix = section.title.indexOf('Module') !== -1 ? sectionTitle.split(':')[0].split('.')[0] : ''
+              const numbering = /\d+\.(\d)(?:\.(\d))?/.exec(subsection.title)
+              const subprefix = numbering ? 'M' + numbering[0] + ' ' : prefix
+              const subtitle = subsubsection.title.replace('Lecture: ', '').replace('Video: ', '').replace(/\[.*?\]/g, '')
+              const title = `${subprefix}${subtitle}`.trim().replace(/\s{2,}/g, ' ').substring(0, 50)
               if (!new RegExp(['Forum', 'overview'].join('|')).test(title)) {
-                await this.createCategory(title, category)
+                try {
+                  await this.createCategory(title, category)
+                } catch (e) {
+                  console.log('Error creating category : ' + title)
+                }
               }
             }
           }
