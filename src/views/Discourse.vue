@@ -147,17 +147,49 @@ export default {
         alert('Error updating category')
       })
     },
-    deleteCategory (categoryId) {
-      this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId, {
-        headers: {
-          'Api-Key': this.$store.state.discourseToken,
-          'Api-Username': this.$store.state.discourseUsername
+    async deleteCategory (categoryId) {
+      this.logs = []
+      await this.fetchCategories()
+
+      const categoryToDelete = this.existingCategories.find(c => c.id === categoryId)
+
+      if (!categoryToDelete) {
+        alert('Error deleting category (category doesn\'t exist)')
+        return
+      }
+
+      if (categoryToDelete.subcategory_ids && categoryToDelete.subcategory_ids.length > 0) {
+        if (!window.confirm(`Do you really want to delete the category (id: ${categoryId}) and all its subcategories (total: ${categoryToDelete.subcategory_ids.length + 1} categories) ?`)) return
+        this.log('Deleting subcategories', 'success')
+        for (let index = 0; index < categoryToDelete.subcategory_ids.length; index++) {
+          try {
+            await this.deleteSingleCategory(categoryToDelete.subcategory_ids[index])
+            this.log(`Subcategory ${categoryToDelete.subcategory_ids[index]} deleted`, 'success')
+          } catch (e) {
+            this.log(`Subcategory ${categoryToDelete.subcategory_ids[index]} not deleted`, 'error')
+          }
+          await this.sleep(500)
         }
-      }).then(response => {
-        this.fetchCategories()
-      }, response => {
-        alert('Error deleting category (category is not empty or doesn\'t exist)')
-      })
+      }
+      try {
+        await this.deleteSingleCategory(categoryId)
+        this.log(`Category ${categoryId} deleted`, 'success')
+      } catch (e) {
+        this.log(`Category ${categoryId} not deleted`, 'error')
+      }
+      await this.fetchCategories()
+    },
+    async deleteSingleCategory (categoryId) {
+      try {
+        await this.$http.delete(this.$store.state.discourseUrl + 'categories/' + categoryId, {
+          headers: {
+            'Api-Key': this.$store.state.discourseToken,
+            'Api-Username': this.$store.state.discourseUsername
+          }
+        })
+      } catch (e) {
+        alert('Error deleting category (category is not empty or too many request, check console)')
+      }
     },
     async createCategories (dryrun) {
       await this.fetchCategories()
@@ -259,6 +291,9 @@ export default {
       const formData = new FormData()
       Object.keys(object).forEach(key => formData.append(key, object[key]))
       return formData
+    },
+    sleep (ms) {
+      return new Promise(resolve => setTimeout(resolve, ms))
     }
   }
 }
