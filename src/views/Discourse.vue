@@ -192,7 +192,7 @@ export default {
       }
     },
     async createCategories (dryrun) {
-      await this.fetchCategories()
+      await this.fetchCategories();
       this.dryRun = !!dryrun
       this.logs = []
       for (const section of this.plan) {
@@ -224,6 +224,7 @@ export default {
           }
         }
       }
+      await this.fetchCategories();
     },
     createCategory (title, parentCategory) {
       return new Promise((resolve, reject) => {
