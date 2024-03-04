@@ -6,7 +6,7 @@ import xml.etree.ElementTree as ET
 
 # Define the variables
 BASE_URL = "https://mooc-forums.inria.fr/moocrr2"
-LAUNCH_URL = "/auth/lti/callback"
+LAUNCH_URL = BASE_URL + "/auth/lti/callback"
 LTI_ID = "moocrr2"
 
 def append_lti_to_verticals(base_url, launch_url, lti_id, dry_run):
@@ -31,7 +31,7 @@ def append_lti_to_verticals(base_url, launch_url, lti_id, dry_run):
                     url = base_url + '/c/' + transform_fullpath_to_discourse_category_name(fullpath)
 
                     # Call insert_lti_forum to create a new LTI and get the UUID value
-                    file_name, uuid_value = insert_lti_forum(base_url, launch_url, lti_id, dry_run)
+                    file_name, uuid_value = insert_lti_forum(url, launch_url, lti_id, dry_run)
                     file_names.append(file_name)
 
                     print('Full category path : ' + fullpath)
@@ -49,7 +49,7 @@ def append_lti_to_verticals(base_url, launch_url, lti_id, dry_run):
 
     return file_names
 
-def insert_lti_forum(base_url, launch_url, lti_id, dry_run):
+def insert_lti_forum(target_url, launch_url, lti_id, dry_run):
     # Create a random 32 characters hexadecimal name
     file_id = uuid.uuid4().hex
     file_name = file_id + '.xml'
@@ -62,7 +62,7 @@ def insert_lti_forum(base_url, launch_url, lti_id, dry_run):
     lti = ET.SubElement(root, "lti",
                         ask_to_send_email="true",
                         ask_to_send_username="true",
-                        custom_parameters='["url=base_url"]'.replace("base_url", base_url),
+                        custom_parameters='["url=target_url"]'.replace("target_url", target_url),
                         display_name="Forum",
                         launch_url=launch_url,
                         lti_id=lti_id,
