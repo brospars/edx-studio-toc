@@ -126,7 +126,7 @@ def transform_fullpath_to_discourse_category_name(s):
         if module_numbers:
             module_number = 'm' + module_numbers[0].replace('.', '-')
         else:
-            module_number = re.findall(r'\d+', part1)[0]
+            module_number = 'm' + re.findall(r'\d+', part1)[0]
 
         # Transform the second subpart
         subpart2 = (module_number + subparts[1])[:50]
